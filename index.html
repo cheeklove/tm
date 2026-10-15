@@ -1,0 +1,1341 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>테니스 대진 메이커</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Mono:wght@500;600&family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap">
+<style>
+/* 레이아웃: 왼쪽 설정 패널 + 오른쪽 결과(탭). 하드코트 블루를 기본색, 공(옵틱 옐로)을 '내 경기' 강조색으로 */
+:root {
+  --bg: #eef2f0; --surface: #ffffff; --surface-2: #f6f8f7; --ink: #15201c; --muted: #5a6a63; --line: #d3dcd7;
+  --court: #1d5a85; --court-ink: #ffffff; --court-soft: #dce8f2;
+  --ball: #dcf23c; --ball-ink: #1b2400; --opp: #ffe2cf; --opp-ink: #5a2a0a;
+  --ok: #23774a; --ok-soft: #dcf1e4; --bad: #b8352a; --bad-soft: #fbe2df; --warn: #946200; --warn-soft: #fbf0d4;
+  --f-display: "Black Han Sans", "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --f-body: "IBM Plex Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --r: 8px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0e1513; --surface: #151f1c; --surface-2: #1a2522; --ink: #e4ece8; --muted: #93a49c; --line: #2a3833;
+  --court: #5d9fd1; --court-ink: #06121c; --court-soft: #1b3044;
+  --ball: #d6ee3a; --ball-ink: #1b2400; --opp: #4a2c19; --opp-ink: #ffd9bf;
+  --ok: #5cc58a; --ok-soft: #173325; --bad: #ef7a6b; --bad-soft: #3a1c18; --warn: #e3b64c; --warn-soft: #34290f;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #0e1513; --surface: #151f1c; --surface-2: #1a2522; --ink: #e4ece8; --muted: #93a49c; --line: #2a3833;
+  --court: #5d9fd1; --court-ink: #06121c; --court-soft: #1b3044;
+  --ball: #d6ee3a; --ball-ink: #1b2400; --opp: #4a2c19; --opp-ink: #ffd9bf;
+  --ok: #5cc58a; --ok-soft: #173325; --bad: #ef7a6b; --bad-soft: #3a1c18; --warn: #e3b64c; --warn-soft: #34290f;
+  color-scheme: dark; }
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 14px/1.55 var(--f-body); -webkit-font-smoothing: antialiased; }
+button, input, select, textarea { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--court); outline-offset: 2px; }
+
+.wrap { max-width: 1440px; margin: 0 auto; padding-block: 20px 48px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+
+header.top { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 24px; margin-bottom: 18px; }
+.brand h1 { font-family: var(--f-display); font-weight: 400; font-size: 30px; line-height: 1.1; margin: 0; letter-spacing: -0.01em; }
+.brand p { margin: 4px 0 0; color: var(--muted); }
+.brand .line { display: block; width: 56px; height: 3px; background: var(--court); margin-bottom: 10px; box-shadow: 0 0 0 0 transparent; }
+
+.grid { display: grid; grid-template-columns: minmax(0, 450px) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 980px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.grid.shared { grid-template-columns: minmax(0, 1fr); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.panel + .panel { margin-top: 14px; }
+details.panel > summary { list-style: none; cursor: pointer; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 600; }
+details.panel > summary::-webkit-details-marker { display: none; }
+details.panel > summary .hint { font-weight: 400; color: var(--muted); font-size: 13px; }
+details.panel > summary::after { content: "＋"; color: var(--muted); }
+details.panel[open] > summary::after { content: "－"; }
+.pbody { padding: 0 16px 16px; display: grid; gap: 12px; }
+
+.eyebrow { font-size: 12px; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+.row { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field label { font-size: 12px; color: var(--muted); }
+input[type=text], input[type=number], input[type=time], select, textarea {
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; min-width: 0; }
+input[type=number] { width: 72px; font-variant-numeric: tabular-nums; }
+textarea { width: 100%; min-height: 140px; font-family: var(--f-mono); font-size: 13px; }
+
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 6px; padding: 7px 12px; cursor: pointer; font-weight: 500; white-space: nowrap; }
+.btn:hover { border-color: var(--court); }
+.btn.primary { background: var(--court); color: var(--court-ink); border-color: var(--court); font-weight: 600; }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; }
+.btn.sm { padding: 4px 9px; font-size: 13px; }
+.btn:disabled { opacity: .5; cursor: default; }
+.icon-btn { border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 2px 6px; border-radius: 4px; }
+.icon-btn:hover { color: var(--bad); background: var(--bad-soft); }
+
+.summary-line { font-size: 13px; color: var(--muted); }
+.summary-line b { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* 참가자 표 */
+.ptable-wrap { max-height: 420px; overflow: auto; border: 1px solid var(--line); border-radius: 6px;
+  scrollbar-gutter: stable; scrollbar-width: thin; scrollbar-color: transparent transparent; }
+.ptable-wrap:hover, .ptable-wrap:focus-within { scrollbar-color: var(--line) transparent; }
+.ptable-wrap::-webkit-scrollbar { width: 8px; height: 8px; }
+.ptable-wrap::-webkit-scrollbar-thumb { background: transparent; border-radius: 4px; }
+.ptable-wrap:hover::-webkit-scrollbar-thumb { background: var(--line); }
+table { border-collapse: collapse; width: 100%; }
+.ptable th, .ptable td { padding: 4px 6px; border-bottom: 1px solid var(--line); text-align: left; }
+.ptable th { position: sticky; top: 0; background: var(--surface-2); font-size: 12px; color: var(--muted); font-weight: 600; z-index: 1; }
+.ptable input[type=text] { width: 100%; min-width: 72px; padding: 4px 6px; }
+.ptable td.nm { width: 34%; } .ptable td.tg select { min-width: 78px; }
+.ptable input[type=number] { width: 38px; padding: 4px 2px; text-align: center; }
+.ptable select { padding: 4px; }
+.ptable td.num { color: var(--muted); font-variant-numeric: tabular-nums; width: 28px; }
+
+/* 규칙 */
+.rule { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); }
+.rule.off { opacity: .55; }
+.rule .name { font-weight: 500; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.rule .desc { grid-column: 2 / 4; font-size: 12px; color: var(--muted); }
+.rule input[type=number] { width: 52px; padding: 3px 6px; }
+.rule select { padding: 3px 6px; font-size: 13px; }
+.rules { display: grid; gap: 6px; }
+.mini-rule { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; padding: 6px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); }
+.mini-rule input[type=text] { width: 96px; }
+.mini-rule select { max-width: 180px; }
+
+/* 생성 바 */
+.genbar { display: grid; gap: 10px; padding: 16px; }
+.seedbox { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.seedbox input { font-family: var(--f-mono); width: 96px; padding: 4px 8px; }
+.btn.big { display: inline-flex; align-items: center; gap: 8px; padding: 9px 16px; font-size: 15px; }
+.seed-alt { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; font-size: 12.5px; color: var(--muted); }
+@media (max-width: 560px) { .seed-alt { margin-left: 0; } }
+.progress { height: 6px; background: var(--surface-2); border-radius: 3px; overflow: hidden; border: 1px solid var(--line); }
+.progress > i { display: block; height: 100%; width: 0; background: var(--court); transition: width .15s; }
+
+/* 결과 */
+.result-head { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; justify-content: space-between; padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.scoreboard { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.seedtag { font-family: var(--f-mono); font-weight: 600; letter-spacing: .04em; background: var(--ink); color: var(--bg); padding: 3px 9px; border-radius: 4px; font-size: 13px; }
+.pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.neutral { background: var(--surface-2); color: var(--muted); border: 1px solid var(--line); }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.banner { margin: 12px 16px 0; padding: 10px 12px; border-radius: 6px; font-size: 13px; }
+.banner.warn { background: var(--warn-soft); color: var(--warn); }
+.banner.info { background: var(--court-soft); color: var(--ink); }
+
+.mebar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.mebar .legend { display: flex; gap: 10px; font-size: 12px; color: var(--muted); align-items: center; }
+.sw { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 4px; }
+.sw.me { background: var(--ball); } .sw.opp { background: var(--opp); }
+.mycard { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+.mycard .g { font-size: 12.5px; padding: 4px 8px; border-radius: 5px; background: var(--surface-2); border: 1px solid var(--line); }
+.mycard .g b { font-variant-numeric: tabular-nums; }
+
+.tabs { display: flex; gap: 2px; padding: 0 12px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.tabs button { border: 0; background: transparent; padding: 11px 12px; cursor: pointer; color: var(--muted); font-weight: 600; border-bottom: 2px solid transparent; white-space: nowrap; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--court); }
+.tabpane { padding: 16px; }
+.scroll { overflow-x: auto; }
+
+.sched th, .sched td { padding: 7px 10px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: middle; white-space: nowrap; }
+.sched th { font-size: 12px; color: var(--muted); font-weight: 600; background: var(--surface-2); }
+.sched td.rd { font-family: var(--f-mono); font-weight: 600; }
+.sched td.time { font-variant-numeric: tabular-nums; color: var(--muted); }
+.sched td.vs { color: var(--muted); text-align: center; font-size: 12px; }
+.sched td.rest { white-space: normal; font-size: 12.5px; color: var(--muted); min-width: 220px; max-width: 360px; background: var(--surface-2); }
+.sched tr.rstart td { border-top: 2px solid var(--line); }
+.ev { font-size: 12px; font-weight: 600; padding: 1px 7px; border-radius: 4px; border: 1px solid var(--line); }
+.ev.MD { color: var(--court); } .ev.WD { color: var(--bad); } .ev.XD { color: var(--ok); } .ev.BAD { background: var(--bad-soft); color: var(--bad); }
+td.me, span.me { background: var(--ball); color: var(--ball-ink); font-weight: 700; }
+td.opp, span.opp { background: var(--opp); color: var(--opp-ink); font-weight: 600; }
+span.me, span.opp { padding: 0 3px; border-radius: 3px; }
+.seed-mark { font-size: 10.5px; font-weight: 700; color: var(--court); margin-left: 2px; vertical-align: 1px; }
+
+.pgrid th, .pgrid td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: left; font-size: 12.5px; white-space: nowrap; }
+.pgrid th { background: var(--surface-2); color: var(--muted); font-weight: 600; position: sticky; top: 0; }
+.pgrid td.restc { color: var(--muted); background: var(--surface-2); text-align: center; }
+.pgrid td.nav { color: var(--muted); text-align: center; opacity: .6; }
+.pgrid tr.meRow td { background: color-mix(in srgb, var(--ball) 35%, var(--surface)); }
+.pgrid td .c { font-family: var(--f-mono); font-size: 11.5px; color: var(--court); font-weight: 600; margin-right: 4px; }
+.pgrid td .o { color: var(--muted); }
+
+.checks { display: grid; gap: 8px; }
+.check { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; }
+.check .d { grid-column: 2; font-size: 12.5px; color: var(--muted); }
+.check .d ul { margin: 4px 0 0; padding-left: 18px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.stat { padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface-2); }
+.stat .k { font-size: 12px; color: var(--muted); }
+.stat .v { font-family: var(--f-mono); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.empty { padding: 48px 16px; text-align: center; color: var(--muted); }
+.empty b { color: var(--ink); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(20px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 9px 14px; border-radius: 6px; font-size: 13px; z-index: 20; }
+.copybox { display: flex; gap: 6px; padding: 0 16px 12px; }
+.copybox input { flex: 1; font-family: var(--f-mono); font-size: 12px; }
+.muted { color: var(--muted); }
+.err { color: var(--bad); font-size: 13px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media print { .grid { display: block; } aside, .actions, .tabs, .mebar select { display: none; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <span class="line"></span>
+      <h1 id="h-title">테니스 대진 메이커</h1>
+      <p id="lead"></p>
+    </div>
+  </header>
+
+  <div class="grid">
+    <aside>
+      <details class="panel" open id="sec-basic">
+        <summary>기본 설정 <span class="hint" id="basic-hint"></span></summary>
+        <div class="pbody">
+          <div class="field"><label for="in-title">대회명</label><input type="text" id="in-title"></div>
+          <div class="row">
+            <div class="field"><label for="in-courts">코트 수</label><input type="number" id="in-courts" min="1" max="12"></div>
+            <div class="field"><label for="in-rounds">라운드 수</label><input type="number" id="in-rounds" min="1" max="20"></div>
+            <div class="field"><label for="in-start">시작 시각</label><input type="time" id="in-start"></div>
+            <div class="field"><label for="in-min">경기 시간(분)</label><input type="number" id="in-min" min="5" max="180"></div>
+          </div>
+          <div class="summary-line" id="slot-line"></div>
+        </div>
+      </details>
+
+      <details class="panel" open id="sec-players">
+        <summary>참가자 <span class="hint" id="players-hint"></span></summary>
+        <div class="pbody">
+          <div class="ptable-wrap">
+            <table class="ptable">
+              <thead><tr><th>#</th><th>이름</th><th>성별</th><th>시드</th><th title="출전 가능 라운드">가능 R</th><th></th></tr></thead>
+              <tbody id="ptbody"></tbody>
+            </table>
+          </div>
+          <div class="row">
+            <button class="btn sm" id="btn-addp">＋ 참가자 추가</button>
+            <button class="btn sm ghost" id="btn-bulk">명단 붙여넣기</button>
+            <button class="btn sm ghost" id="btn-sample">예시 명단 불러오기</button>
+          </div>
+          <div id="bulk" hidden>
+            <div class="field">
+              <label for="bulk-text">한 줄에 한 명: 이름, 성별(남/여), 시드(탑시드/AD시드, 없으면 비움), 시작R, 종료R. 뒤 세 칸은 생략 가능</label>
+              <textarea id="bulk-text" placeholder="선수5, 남, , 3&#10;선수9, 남, 탑시드&#10;선수8, 여"></textarea>
+            </div>
+            <div class="row" style="margin-top:8px">
+              <button class="btn sm primary" id="bulk-replace">이 명단으로 교체</button>
+              <button class="btn sm" id="bulk-append">기존 명단에 추가</button>
+              <button class="btn sm ghost" id="bulk-cancel">닫기</button>
+            </div>
+            <div class="err" id="bulk-err"></div>
+          </div>
+          <div class="summary-line">가능 R은 출전 가능한 라운드입니다. 늦게 오면 시작을, 일찍 가면 끝을 바꾸세요.</div>
+        </div>
+      </details>
+
+      <details class="panel" open id="sec-rules">
+        <summary>대진 조건 <span class="hint">필수는 반드시, 선호는 가능하면</span></summary>
+        <div class="pbody">
+          <div class="eyebrow">기본 조건</div>
+          <div class="rules" id="rules"></div>
+          <div class="eyebrow" style="margin-top:6px">시드 조건</div>
+          <div class="rules" id="tagrules"></div>
+          <div><button class="btn sm" id="btn-addtag">＋ 시드 조건</button></div>
+          <div class="eyebrow" style="margin-top:6px">지정 인원 조건</div>
+          <div class="rules" id="pairrules"></div>
+          <div><button class="btn sm" id="btn-addpair">＋ 두 사람 조건</button></div>
+        </div>
+      </details>
+    </aside>
+
+    <main>
+      <section class="panel" id="genpanel">
+        <div class="genbar">
+          <div class="seedbox">
+            <button class="btn primary big" id="btn-shuffle"><svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 4h2.2c1.6 0 2.6.7 3.5 2l1.6 2.4c.9 1.3 1.9 2 3.5 2h2.2"/><path d="M1.5 12h2.2c1.6 0 2.6-.7 3.5-2"/><path d="M10 6c.8-1.3 1.7-2 3.3-2h1.2"/><path d="M12.8 2.2 14.5 4l-1.7 1.8M12.8 8.6l1.7 1.8-1.7 1.8"/></svg>셔플로 대진 생성</button>
+            <button class="btn ghost" id="btn-cancel" hidden>중단</button>
+            <span class="seed-alt">
+              <label for="in-seed">시드 번호</label>
+              <input type="text" id="in-seed" inputmode="numeric">
+              <button class="btn sm ghost" id="btn-gen">이 시드로 생성</button>
+            </span>
+          </div>
+          <div class="summary-line">셔플할 때마다 새 시드가 뽑힙니다. 같은 명단·조건·시드면 언제 돌려도 같은 대진이 나오니, 공개 추첨처럼 쓰려면 참가자에게 받은 숫자를 시드로 넣으세요.</div>
+          <div class="progress" id="prog" hidden><i></i></div>
+          <div class="summary-line" id="gen-status"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="result"></section>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script type="text/plain" id="engine-src">
+// ===== 대진 생성 엔진 (Web Worker / Node 공용) =====
+// 입력이 같고 시드가 같으면 항상 같은 결과가 나온다 (시간 기반 중단 없음).
+
+function mulberry32(a) {
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+let W_HARD = 1000; const W_SOFT = 8, W_MIN = 1;
+
+function prepare(input) {
+  const P = input.players, N = P.length, R = input.rounds, C = input.courts;
+  const avail = new Uint8Array(N * R);
+  for (let p = 0; p < N; p++) {
+    const f = Math.max(1, P[p].from || 1), t = Math.min(R, P[p].to || R);
+    for (let r = f; r <= t; r++) avail[p * R + (r - 1)] = 1;
+  }
+  const courtsIn = [];
+  let slots = 0;
+  for (let r = 0; r < R; r++) {
+    let a = 0; for (let p = 0; p < N; p++) a += avail[p * R + r];
+    const c = Math.min(C, Math.floor(a / 4));
+    courtsIn.push(c); slots += c * 4;
+  }
+  const availCnt = new Int32Array(N);
+  for (let p = 0; p < N; p++) for (let r = 0; r < R; r++) availCnt[p] += avail[p * R + r];
+  const base = Math.floor(slots / N), extra = slots - base * N;
+  const lo = new Int32Array(N), hi = new Int32Array(N);
+  for (let p = 0; p < N; p++) {
+    hi[p] = Math.min(extra > 0 ? base + 1 : base, availCnt[p]);
+    lo[p] = Math.min(base, availCnt[p]);
+  }
+  const fem = new Uint8Array(N);
+  for (let p = 0; p < N; p++) fem[p] = P[p].gender === 'F' ? 1 : 0;
+  // 태그 비트마스크
+  const tagRules = (input.tagRules || []).filter(t => t.on !== false && t.tag);
+  const tagMask = new Int32Array(N);
+  tagRules.forEach((t, i) => {
+    for (let p = 0; p < N; p++) if ((P[p].tags || []).includes(t.tag)) tagMask[p] |= (1 << i);
+  });
+  // 지정 2인 규칙: 행렬에 비트 (1=같은팀금지, 2=상대금지, 4=같은경기금지) / hard 여부
+  const pairRules = (input.pairRules || []).filter(r => r.on !== false);
+  const pairType = new Uint8Array(N * N), pairHard = new Uint8Array(N * N);
+  const idx = {}; P.forEach((p, i) => idx[p.name] = i);
+  for (const pr of pairRules) {
+    const a = idx[pr.a], b = idx[pr.b];
+    if (a === undefined || b === undefined || a === b) continue;
+    const bit = pr.type === 'noSameTeam' ? 1 : pr.type === 'noOpponent' ? 2 : 4;
+    pairType[a * N + b] |= bit; pairType[b * N + a] |= bit;
+    if (pr.hard !== false) { pairHard[a * N + b] |= bit; pairHard[b * N + a] |= bit; }
+  }
+  const tune = Object.assign({ T0: 1, T1: 0.02, T0b: 2, iterA: 300000, iterB: 200000 }, input.tune || {});
+  return { tune, N, R, C, avail, courtsIn, slots, base, extra, lo, hi, fem, tagRules, tagMask, pairType, pairHard, rules: input.rules, availCnt };
+}
+
+function makeEvaluator(pp, hardOnly) {
+  const { N, R, avail, courtsIn, lo, hi, fem, tagRules, tagMask, pairType, pairHard, rules } = pp;
+  const games = new Int32Array(N), play = new Uint8Array(N * R);
+  const partner = new Int32Array(N * N), opp = new Int32Array(N * N);
+  const wd = new Int32Array(N), xd = new Int32Array(N);
+  const WH = hardOnly ? 1 : W_HARD, WS = hardOnly ? 0 : W_SOFT;
+  const w = r => (r && r.on) ? (r.hard ? WH : WS) : 0;
+  const wEq = w(rules.equalGames), wPur = w(rules.eventPurity), wWD = w(rules.womenWD), wXD = w(rules.womenXD);
+  const wPm = w(rules.partnerMax), wOm = w(rules.oppMax), wCp = w(rules.consecPlay), wCr = w(rules.consecRest);
+  const wMin = !hardOnly && rules.oppMinimize && rules.oppMinimize.on ? W_MIN : 0;
+  const tW = tagRules.map(t => t.hard !== false ? WH : WS);
+  const tType = tagRules.map(t => t.type);
+
+  function pairPen(a, b, isPartner) {
+    const t = pairType[a * N + b]; if (!t) return 0;
+    const h = pairHard[a * N + b];
+    const bits = isPartner ? (t & 5) : (t & 6);
+    let s = 0;
+    for (const bit of [1, 2, 4]) if (bits & bit) s += (h & bit) ? WH : WS;
+    return s;
+  }
+
+  return function evaluate(sched) {
+    games.fill(0); play.fill(0); partner.fill(0); opp.fill(0); wd.fill(0); xd.fill(0);
+    let cost = 0;
+    for (let r = 0; r < R; r++) {
+      const s = sched[r];
+      for (let m = 0; m < courtsIn[r]; m++) {
+        const a1 = s[m * 4], a2 = s[m * 4 + 1], b1 = s[m * 4 + 2], b2 = s[m * 4 + 3];
+        games[a1]++; games[a2]++; games[b1]++; games[b2]++;
+        play[a1 * R + r] = 1; play[a2 * R + r] = 1; play[b1 * R + r] = 1; play[b2 * R + r] = 1;
+        partner[a1 * N + a2]++; partner[a2 * N + a1]++; partner[b1 * N + b2]++; partner[b2 * N + b1]++;
+        opp[a1 * N + b1]++; opp[b1 * N + a1]++; opp[a1 * N + b2]++; opp[b2 * N + a1]++;
+        opp[a2 * N + b1]++; opp[b1 * N + a2]++; opp[a2 * N + b2]++; opp[b2 * N + a2]++;
+        const gA = fem[a1] + fem[a2], gB = fem[b1] + fem[b2];
+        if (gA !== gB) cost += wPur;
+        else if (gA === 2) { wd[a1]++; wd[a2]++; wd[b1]++; wd[b2]++; }
+        else if (gA === 1) { xd[a1]++; xd[a2]++; xd[b1]++; xd[b2]++; }
+        for (let i = 0; i < tType.length; i++) {
+          const bit = 1 << i;
+          const ca = ((tagMask[a1] & bit) ? 1 : 0) + ((tagMask[a2] & bit) ? 1 : 0);
+          const cb = ((tagMask[b1] & bit) ? 1 : 0) + ((tagMask[b2] & bit) ? 1 : 0);
+          if (tType[i] === 'noSameTeam') { if (ca === 2) cost += tW[i]; if (cb === 2) cost += tW[i]; }
+          else if (ca + cb > 0 && !(ca === 1 && cb === 1)) cost += tW[i];
+        }
+        cost += pairPen(a1, a2, true) + pairPen(b1, b2, true)
+          + pairPen(a1, b1, false) + pairPen(a1, b2, false) + pairPen(a2, b1, false) + pairPen(a2, b2, false);
+      }
+    }
+    const pm = rules.partnerMax.n, om = rules.oppMax.n, cp = rules.consecPlay.n, cr = rules.consecRest.n;
+    const wdN = rules.womenWD.n, xdN = rules.womenXD.n;
+    for (let p = 0; p < N; p++) {
+      const g = games[p];
+      if (g > hi[p]) cost += wEq * (g - hi[p]); else if (g < lo[p]) cost += wEq * (lo[p] - g);
+      if (fem[p]) {
+        if (wWD) cost += wWD * Math.abs(wd[p] - wdN);
+        if (wXD) cost += wXD * Math.abs(xd[p] - xdN);
+      }
+      for (let q = p + 1; q < N; q++) {
+        const pc = partner[p * N + q], oc = opp[p * N + q];
+        if (pc > pm) cost += wPm * (pc - pm);
+        if (oc > om) cost += wOm * (oc - om);
+        if (oc > 1) cost += wMin * (oc - 1);
+      }
+      let sp = 0, sr = 0;
+      for (let r = 0; r < R; r++) {
+        if (!avail[p * R + r]) { sp = 0; sr = 0; continue; }
+        if (play[p * R + r]) { sp++; sr = 0; if (sp > cp) cost += wCp; }
+        else { sr++; sp = 0; if (sr > cr) cost += wCr; }
+      }
+    }
+    return cost;
+  };
+}
+
+// sched[r] = Int32Array: [경기 슬롯(courtsIn*4) ... | 휴식(가용 인원 중 미출전)]
+function initial(pp, rnd) {
+  const { N, R, avail, courtsIn } = pp;
+  const games = new Int32Array(N);
+  const sched = [];
+  for (let r = 0; r < R; r++) {
+    const av = [];
+    for (let p = 0; p < N; p++) if (avail[p * R + r]) av.push(p);
+    // 남은 가용 라운드 대비 부족한 사람 우선
+    const need = p => {
+      let left = 0; for (let k = r; k < R; k++) left += avail[p * R + k];
+      return (pp.hi[p] - games[p]) / left;
+    };
+    const keyed = av.map(p => [p, need(p) + rnd() * 0.01]);
+    keyed.sort((x, y) => y[1] - x[1]);
+    const order = keyed.map(x => x[0]);
+    const k = courtsIn[r] * 4;
+    const playing = order.slice(0, k);
+    for (let i = playing.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [playing[i], playing[j]] = [playing[j], playing[i]]; }
+    playing.forEach(p => games[p]++);
+    sched.push(Int32Array.from(playing.concat(order.slice(k))));
+  }
+  return sched;
+}
+
+function anneal(pp, rnd, sched, evaluate, iters, T0, T1, onProgress) {
+  const { R, courtsIn, fem } = pp;
+  let cur = evaluate(sched), best = cur, bestS = sched.map(a => a.slice());
+  const sw = []; // 되돌리기용 [round, i, j]
+  const swap = (r, i, j) => { const s = sched[r]; const t = s[i]; s[i] = s[j]; s[j] = t; sw.push(r, i, j); };
+  const rand = n => Math.floor(rnd() * n);
+  for (let it = 0; it < iters; it++) {
+    const T = T0 * Math.pow(T1 / T0, it / iters);
+    sw.length = 0;
+    const r = rand(R), s = sched[r], k = courtsIn[r] * 4, len = s.length;
+    if (k === 0) continue;
+    const mv = rnd();
+    const i = rand(k);
+    if (mv < 0.35) {
+      // 같은 라운드, 같은 성별끼리 경기 자리 교환
+      let j = -1;
+      for (let t = 0; t < 8; t++) { const q = rand(k); if ((q >> 1) !== (i >> 1) && fem[s[q]] === fem[s[i]]) { j = q; break; } }
+      if (j < 0) continue;
+      swap(r, i, j);
+    } else if (mv < 0.45) {
+      const j = rand(k); if ((i >> 1) === (j >> 1)) continue;
+      swap(r, i, j);
+    } else if (mv < 0.6) {
+      // 두 경기 사이 2:2 교환 (혼복+혼복 <-> 여복+남복 같은 종목 재구성)
+      const mi = i >> 2, mj = rand(k >> 2); if (mi === mj) continue;
+      const gi = fem[s[i]];
+      let i2 = -1, j = -1, j2 = -1;
+      for (let x = mi * 4; x < mi * 4 + 4; x++) if (x !== i && fem[s[x]] === gi && rnd() < 0.7) { i2 = x; break; }
+      const opts = [];
+      for (let x = mj * 4; x < mj * 4 + 4; x++) opts.push(x);
+      for (let t = 0; t < 4; t++) { const x = opts[rand(4)]; if (j < 0) j = x; else if (x !== j) { j2 = x; break; } }
+      if (i2 < 0 || j < 0 || j2 < 0) continue;
+      swap(r, i, j); swap(r, i2, j2);
+    } else if (mv < 0.9 && len > k) {
+      // 두 라운드에 걸친 출전/휴식 맞교환 (경기 수 유지)
+      const p = s[i];
+      const sameG = rnd() < 0.85;
+      let j = -1;
+      for (let t = 0; t < 8; t++) { const q = k + rand(len - k); if (!sameG || fem[s[q]] === fem[p]) { j = q; break; } }
+      if (j < 0) continue;
+      const q = s[j];
+      // q가 뛰고 p가 쉬는 다른 라운드 찾기
+      const cand = [];
+      for (let r2 = 0; r2 < R; r2++) {
+        if (r2 === r) continue;
+        const s2 = sched[r2], k2 = courtsIn[r2] * 4;
+        let iq = -1, ip = -1;
+        for (let x = 0; x < s2.length; x++) { if (s2[x] === q && x < k2) iq = x; else if (s2[x] === p && x >= k2) ip = x; }
+        if (iq >= 0 && ip >= 0) cand.push(r2, iq, ip);
+      }
+      if (!cand.length) continue;
+      const c = rand(cand.length / 3) * 3;
+      swap(r, i, j); swap(cand[c], cand[c + 1], cand[c + 2]);
+    } else if (len > k) {
+      swap(r, i, k + rand(len - k));
+    } else continue;
+    const c = evaluate(sched);
+    if (c <= cur || rnd() < Math.exp((cur - c) / T)) {
+      cur = c;
+      if (c < best) { best = c; bestS = sched.map(a => a.slice()); if (best === 0) break; }
+    } else {
+      for (let x = sw.length - 3; x >= 0; x -= 3) { const s2 = sched[sw[x]]; const t = s2[sw[x + 1]]; s2[sw[x + 1]] = s2[sw[x + 2]]; s2[sw[x + 2]] = t; }
+    }
+    if (onProgress && (it & 0x3FFF) === 0) onProgress(it / iters, best);
+  }
+  return { sched: bestS, cost: best };
+}
+
+// 결과를 사람이 읽는 구조로: rounds[r] = { matches: [[a1,a2,b1,b2],...], rest: [...] }
+function toResult(pp, sched) {
+  return sched.map((s, r) => {
+    const k = pp.courtsIn[r] * 4, matches = [];
+    for (let m = 0; m < pp.courtsIn[r]; m++) matches.push([s[m * 4], s[m * 4 + 1], s[m * 4 + 2], s[m * 4 + 3]]);
+    return { matches, rest: Array.from(s.slice(k)) };
+  });
+}
+
+// 1단계: 필수 조건만 보고 위반 0을 찾는다 → 2단계: 필수 조건을 지킨 채 선호 조건(상대 중복 등)을 개선
+function generate(input, seed, onProgress) {
+  const pp = prepare(input);
+  const tn = pp.tune;
+  const restarts = input.restarts || 10;
+  const hardEval = makeEvaluator(pp, true);
+  W_HARD = 1000; const fullEval = makeEvaluator(pp, false);
+  let best = null;
+  for (let k = 0; k < restarts; k++) {
+    const rnd = mulberry32((seed + k * 7919) >>> 0);
+    const prog = f => onProgress && onProgress((k + f) / restarts, k);
+    let a = anneal(pp, rnd, initial(pp, rnd), hardEval, tn.iterA, tn.T0, tn.T1, f => prog(f * 0.6));
+    let res = { sched: a.sched, hard: a.cost };
+    if (res.hard === 0) {
+      const b = anneal(pp, rnd, a.sched, fullEval, tn.iterB, tn.T0b, tn.T1, f => prog(0.6 + f * 0.4));
+      if (hardEval(b.sched) === 0) res.sched = b.sched;
+    }
+    res.cost = fullEval(res.sched);
+    if (!best || res.hard < best.hard || (res.hard === best.hard && res.cost < best.cost)) best = res;
+    if (best.hard === 0) break;
+  }
+  return { rounds: toResult(pp, best.sched), cost: best.cost, hard: best.hard, seed };
+}
+
+if (typeof module !== 'undefined') module.exports = { generate, prepare, mulberry32 };
+if (typeof self !== 'undefined' && typeof window === 'undefined' && typeof module === 'undefined') {
+  self.onmessage = e => {
+    const { input, seed } = e.data;
+    let last = 0;
+    const out = generate(input, seed, (f, b) => {
+      const now = Date.now(); if (now - last > 120) { last = now; self.postMessage({ type: 'progress', f, best: b }); }
+    });
+    self.postMessage({ type: 'done', result: out });
+  };
+}
+
+</script>
+<script>
+// ===== 독립 검증 (엔진의 비용 함수와 별개로, 결과만 보고 다시 센다) =====
+function verifySchedule(input, rounds) {
+  const P = input.players, N = P.length, R = rounds.length, rules = input.rules;
+  const name = i => P[i].name;
+  const isF = i => P[i].gender === 'F';
+  const games = Array(N).fill(0), playR = P.map(() => Array(R).fill(false));
+  const pc = new Map(), oc = new Map(), wd = Array(N).fill(0), xd = Array(N).fill(0);
+  const key = (a, b) => a < b ? a + ',' + b : b + ',' + a;
+  const inc = (m, k) => m.set(k, (m.get(k) || 0) + 1);
+  const out = [];
+  const purityBad = [], availBad = [], dupBad = [];
+
+  rounds.forEach((rd, r) => {
+    const seen = new Set();
+    rd.matches.forEach((m, c) => {
+      m.forEach(p => {
+        if (seen.has(p)) dupBad.push(`${r + 1}R ${name(p)} 중복 배정`);
+        seen.add(p); games[p]++; playR[p][r] = true;
+        const f = Math.max(1, P[p].from || 1), t = Math.min(R, P[p].to || R);
+        if (r + 1 < f || r + 1 > t) availBad.push(`${name(p)} ${r + 1}R (가능 ${f}~${t}R)`);
+      });
+      const [a1, a2, b1, b2] = m;
+      inc(pc, key(a1, a2)); inc(pc, key(b1, b2));
+      [[a1, b1], [a1, b2], [a2, b1], [a2, b2]].forEach(([x, y]) => inc(oc, key(x, y)));
+      const fa = isF(a1) + isF(a2), fb = isF(b1) + isF(b2);
+      if (fa !== fb) purityBad.push(`${r + 1}R ${c + 1}코트`);
+      else if (fa === 2) m.forEach(p => wd[p]++);
+      else if (fa === 1) m.forEach(p => xd[p]++);
+    });
+  });
+
+  const add = (id, label, rule, fails, detailOk) => {
+    if (rule && !rule.on) return;
+    out.push({ id, label, hard: rule ? !!rule.hard : true, pass: fails.length === 0, fails, detail: fails.length ? '' : detailOk });
+  };
+  add('dup', '한 라운드 중복 배정 없음', null, dupBad, '중복 0건');
+  add('avail', '출전 가능 라운드 준수', null, availBad, '전원 가능 라운드 내 배정');
+
+  // 경기 수
+  const totalSlots = rounds.reduce((s, rd) => s + rd.matches.length * 4, 0);
+  const base = Math.floor(totalSlots / N), extra = totalSlots - base * N;
+  const eqBad = [];
+  for (let p = 0; p < N; p++) {
+    const f = Math.max(1, P[p].from || 1), t = Math.min(R, P[p].to || R), av = t - f + 1;
+    const hi = Math.min(extra ? base + 1 : base, av), lo = Math.min(base, av);
+    if (games[p] < lo || games[p] > hi) eqBad.push(`${name(p)} ${games[p]}경기 (기준 ${lo === hi ? lo : lo + '~' + hi})`);
+  }
+  add('equalGames', '1인당 경기 수 균등', rules.equalGames, eqBad,
+    extra ? `전원 ${base}~${base + 1}경기` : `전원 ${base}경기`);
+  add('eventPurity', '종목 구성 (남복·여복·혼복만)', rules.eventPurity, purityBad.map(s => s + ' 성별 구성 불일치'), '잡복 0건');
+
+  const women = P.map((_, i) => i).filter(isF);
+  if (rules.womenWD.on) add('womenWD', `여자 1인당 여복 ${rules.womenWD.n}경기`, rules.womenWD,
+    women.filter(i => wd[i] !== rules.womenWD.n).map(i => `${name(i)} 여복 ${wd[i]}경기`), `여자 ${women.length}명 전원 일치`);
+  if (rules.womenXD.on) add('womenXD', `여자 1인당 혼복 ${rules.womenXD.n}경기`, rules.womenXD,
+    women.filter(i => xd[i] !== rules.womenXD.n).map(i => `${name(i)} 혼복 ${xd[i]}경기`), `여자 ${women.length}명 전원 일치`);
+
+  const pairName = k => k.split(',').map(Number).map(name).join('–');
+  add('partnerMax', `같은 파트너 최대 ${rules.partnerMax.n}회`, rules.partnerMax,
+    [...pc].filter(([, v]) => v > rules.partnerMax.n).map(([k, v]) => `${pairName(k)} ${v}회`), '초과 0건');
+  add('oppMax', `같은 상대 최대 ${rules.oppMax.n}회`, rules.oppMax,
+    [...oc].filter(([, v]) => v > rules.oppMax.n).map(([k, v]) => `${pairName(k)} ${v}회`), '초과 0건');
+
+  const cpBad = [], crBad = [];
+  for (let p = 0; p < N; p++) {
+    let sp = 0, sr = 0, mp = 0, mr = 0;
+    const f = Math.max(1, P[p].from || 1), t = Math.min(R, P[p].to || R);
+    for (let r = 0; r < R; r++) {
+      if (r + 1 < f || r + 1 > t) { sp = sr = 0; continue; }
+      if (playR[p][r]) { sp++; sr = 0; } else { sr++; sp = 0; }
+      mp = Math.max(mp, sp); mr = Math.max(mr, sr);
+    }
+    if (mp > rules.consecPlay.n) cpBad.push(`${name(p)} ${mp}연속 출전`);
+    if (mr > rules.consecRest.n) crBad.push(`${name(p)} ${mr}연속 휴식`);
+  }
+  add('consecPlay', `연속 출전 최대 ${rules.consecPlay.n}라운드`, rules.consecPlay, cpBad, '초과 0건');
+  add('consecRest', `연속 휴식 최대 ${rules.consecRest.n}라운드`, rules.consecRest, crBad, '초과 0건 (불참 라운드 제외)');
+
+  (input.tagRules || []).filter(t => t.on !== false && t.tag).forEach((t, i) => {
+    const has = p => (P[p].tags || []).includes(t.tag);
+    const bad = [];
+    rounds.forEach((rd, r) => rd.matches.forEach((m, c) => {
+      const ca = has(m[0]) + has(m[1]), cb = has(m[2]) + has(m[3]);
+      if (t.type === 'noSameTeam') { if (ca === 2 || cb === 2) bad.push(`${r + 1}R ${c + 1}코트`); }
+      else if (ca + cb > 0 && !(ca === 1 && cb === 1)) bad.push(`${r + 1}R ${c + 1}코트 (${ca}:${cb})`);
+    }));
+    const members = P.filter((_, p) => has(p)).length;
+    add('tag' + i, `[${t.tag}] ${t.type === 'noSameTeam' ? '같은 팀 금지' : '맞대결 (출전 시 상대편에도 1명)'}`,
+      { on: true, hard: t.hard !== false }, bad, `${members}명 대상, 위반 0건`);
+  });
+
+  const idx = {}; P.forEach((p, i) => idx[p.name] = i);
+  (input.pairRules || []).filter(x => x.on !== false).forEach((pr, i) => {
+    const a = idx[pr.a], b = idx[pr.b];
+    if (a === undefined || b === undefined) return;
+    const bad = [];
+    rounds.forEach((rd, r) => rd.matches.forEach((m, c) => {
+      const ia = m.indexOf(a), ib = m.indexOf(b);
+      if (ia < 0 || ib < 0) return;
+      const same = (ia >> 1) === (ib >> 1);
+      if (pr.type === 'noSameMatch' || (pr.type === 'noSameTeam' && same) || (pr.type === 'noOpponent' && !same)) bad.push(`${r + 1}R ${c + 1}코트`);
+    }));
+    const lbl = { noSameTeam: '같은 팀 금지', noOpponent: '상대 금지', noSameMatch: '같은 경기 금지' }[pr.type];
+    add('pair' + i, `${pr.a} · ${pr.b} ${lbl}`, { on: true, hard: pr.hard !== false }, bad, '위반 0건');
+  });
+
+  const stats = {
+    opp2: [...oc].filter(([, v]) => v === 2).length,
+    opp3: [...oc].filter(([, v]) => v >= 3).length,
+    partnerRepeat: [...pc].filter(([, v]) => v > 1).length,
+    games, wd, xd, pc, oc,
+  };
+  return { checks: out, stats };
+}
+if (typeof module !== 'undefined') module.exports = { verifySchedule };
+
+// 예시 데이터 (가명)
+const SAMPLE = {
+  title: '테니스 친목대회',
+  courts: 4, rounds: 7, startTime: '12:00', matchMinutes: 40,
+  players: [
+    ['선수1','M'],['선수2','M'],['선수3','M','AD시드'],['선수4','M'],['선수5','M','',3],['선수6','F'],
+    ['선수7','M','',3],['선수8','F'],['선수9','M','탑시드'],['선수10','M'],['선수11','M'],['선수12','M'],
+    ['선수13','M'],['선수14','M','탑시드'],['선수15','M','AD시드'],['선수16','M'],['선수17','M','',3],['선수18','F'],
+    ['선수19','M'],['선수20','M'],['선수21','F'],['선수22','F','',3],['선수23','M','탑시드'],['선수24','F'],
+    ['선수25','M','탑시드'],['선수26','M'],['선수27','M','AD시드'],['선수28','M'],
+  ].map(([name, gender, tag, from]) => ({ name, gender, tags: tag ? [tag] : [], from: from || 1, to: 7 })),
+  rules: {
+    equalGames: { on: true, hard: true },
+    eventPurity: { on: true, hard: true },
+    womenWD: { on: true, hard: true, n: 2 },
+    womenXD: { on: false, hard: true, n: 2 },
+    partnerMax: { on: true, hard: true, n: 1 },
+    oppMax: { on: true, hard: true, n: 2 },
+    oppMinimize: { on: true },
+    consecPlay: { on: true, hard: true, n: 2 },
+    consecRest: { on: true, hard: true, n: 2 },
+  },
+  tagRules: [
+    { tag: '탑시드', type: 'noSameTeam', hard: true },
+    { tag: '탑시드', type: 'faceOff', hard: true },
+    { tag: 'AD시드', type: 'noSameTeam', hard: true },
+    { tag: 'AD시드', type: 'faceOff', hard: true },
+  ],
+  pairRules: [],
+};
+if (typeof module !== 'undefined') module.exports = { SAMPLE };
+
+// ===== 앱 =====
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const clone = o => JSON.parse(JSON.stringify(o));
+const LS_KEY = 'tennis-draw-settings-v1', LS_ME = 'tennis-draw-me';
+const lsGet = k => { try { return localStorage.getItem(k); } catch (e) { return null; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) { } };
+
+const RULE_DEFS = [
+  { id: 'equalGames', label: '1인당 경기 수 균등', desc: '전원 같은 경기 수. 자리가 나누어떨어지지 않으면 1경기 차까지 허용' },
+  { id: 'eventPurity', label: '종목 구성', desc: '남복, 여복, 혼복(남녀 vs 남녀)만 허용. 여1·여3 잡복과 남녀 대결 금지' },
+  { id: 'womenWD', label: '여자 1인당 여복', unit: '경기' },
+  { id: 'womenXD', label: '여자 1인당 혼복', unit: '경기' },
+  { id: 'partnerMax', label: '같은 파트너 최대', unit: '회', desc: '1이면 매번 새로운 파트너' },
+  { id: 'oppMax', label: '같은 상대 최대', unit: '회' },
+  { id: 'consecPlay', label: '연속 출전 최대', unit: '라운드' },
+  { id: 'consecRest', label: '연속 휴식 최대', unit: '라운드', desc: '늦게 오거나 일찍 가는 라운드는 세지 않음' },
+  { id: 'oppMinimize', label: '상대 중복 최소화', desc: '같은 상대를 다시 만나는 횟수를 가능한 한 줄임', softOnly: true },
+];
+const SEEDS = ['탑시드', 'AD시드'];
+// 붙여넣기 시드 표기 → 고정 값
+function parseSeed(v) {
+  v = (v || '').trim().toLowerCase().replace(/\s/g, '');
+  if (!v || v === '-' || v === '일반') return '';
+  if (v === '탑시드' || v === '탑' || v === 'top') return '탑시드';
+  if (v === 'ad시드' || v === 'ad') return 'AD시드';
+  return null;
+}
+const TAG_TYPES = { noSameTeam: '같은 팀 금지', faceOff: '맞대결 (상대편에도 1명)' };
+const PAIR_TYPES = { noSameTeam: '같은 팀 금지', noOpponent: '상대 금지', noSameMatch: '같은 경기 금지' };
+
+let S;            // 현재 설정
+let RES = null;   // { input, rounds, seed, hard, verify }
+let worker = null, workerURL = null;
+let me = lsGet(LS_ME) || '';
+let tab = 'court';
+let sharedView = false;
+
+function defaults() { return clone(SAMPLE); }
+function normalize(s) {
+  const d = defaults();
+  s = Object.assign({}, d, s);
+  s.rules = Object.assign({}, d.rules, s.rules || {});
+  for (const k in d.rules) s.rules[k] = Object.assign({}, d.rules[k], s.rules[k] || {});
+  s.players = (s.players || []).map(p => ({ name: p.name || '', gender: p.gender === 'F' ? 'F' : 'M', tags: (p.tags || []).filter(t => SEEDS.includes(t)).slice(0, 1), from: +p.from || 1, to: +p.to || s.rounds }));
+  s.tagRules = (s.tagRules || []).filter(t => SEEDS.includes(t.tag)); s.pairRules = s.pairRules || [];
+  return s;
+}
+function save() { if (!sharedView) lsSet(LS_KEY, JSON.stringify(S)); }
+
+// 엔진에 넘길 입력 (결과와 함께 저장되는 스냅샷)
+function engineInput() {
+  const players = S.players.filter(p => p.name.trim()).map(p => ({
+    name: p.name.trim(), gender: p.gender, tags: p.tags.filter(Boolean),
+    from: Math.max(1, Math.min(S.rounds, +p.from || 1)), to: Math.max(1, Math.min(S.rounds, +p.to || S.rounds)),
+  }));
+  return {
+    title: S.title, courts: +S.courts, rounds: +S.rounds, startTime: S.startTime, matchMinutes: +S.matchMinutes,
+    players, rules: clone(S.rules), tagRules: clone(S.tagRules.filter(t => t.tag)), pairRules: clone(S.pairRules.filter(p => p.a && p.b)),
+  };
+}
+const engineKey = inp => JSON.stringify([inp.courts, inp.rounds, inp.players, inp.rules, inp.tagRules, inp.pairRules]);
+
+function toast(msg) {
+  const t = $('#toast'); t.textContent = msg; t.hidden = false;
+  clearTimeout(toast._t); toast._t = setTimeout(() => t.hidden = true, 2200);
+}
+
+// ---------- 설정 렌더 ----------
+function renderBasics() {
+  $('#in-title').value = S.title; $('#in-courts').value = S.courts; $('#in-rounds').value = S.rounds;
+  $('#in-start').value = S.startTime; $('#in-min').value = S.matchMinutes;
+  updateSummary();
+}
+function updateSummary() {
+  const ps = S.players.filter(p => p.name.trim());
+  const m = ps.filter(p => p.gender === 'M').length, f = ps.length - m;
+  $('#players-hint').textContent = `${ps.length}명 (남 ${m} · 여 ${f})`;
+  const slots = S.courts * S.rounds * 4;
+  const per = ps.length ? slots / ps.length : 0;
+  const perTxt = !ps.length ? '' : Number.isInteger(per) ? `1인 ${per}경기` : `1인 ${Math.floor(per)}~${Math.ceil(per)}경기`;
+  $('#slot-line').innerHTML = `코트 <b>${S.courts}</b> × <b>${S.rounds}</b>라운드 = 출전 자리 <b>${slots}</b>개 · 라운드당 <b>${Math.max(0, ps.length - S.courts * 4)}</b>명 휴식 · <b>${perTxt}</b>`
+    + (ps.length && ps.length < S.courts * 4 ? `<div class="err">인원이 코트 수에 비해 적습니다. 일부 코트는 비게 됩니다.</div>` : '');
+  $('#basic-hint').textContent = `${S.courts}코트 · ${S.rounds}R`;
+  $('#h-title').textContent = S.title || '테니스 대진 메이커';
+  markStale();
+}
+
+function renderPlayers() {
+  const tb = $('#ptbody');
+  tb.innerHTML = S.players.map((p, i) => `<tr data-i="${i}">
+    <td class="num">${i + 1}</td>
+    <td class="nm"><input type="text" id="p-name-${i}" data-k="name" value="${esc(p.name)}" aria-label="이름"></td>
+    <td><select id="p-g-${i}" data-k="gender" aria-label="성별"><option value="M"${p.gender === 'M' ? ' selected' : ''}>남</option><option value="F"${p.gender === 'F' ? ' selected' : ''}>여</option></select></td>
+    <td class="tg"><select id="p-t-${i}" data-k="tags" aria-label="시드"><option value="">일반</option>${SEEDS.map(t => `<option${p.tags[0] === t ? ' selected' : ''}>${t}</option>`).join('')}</select></td>
+    <td style="white-space:nowrap"><input type="number" id="p-f-${i}" data-k="from" min="1" max="${S.rounds}" value="${p.from}" aria-label="시작 라운드">~<input type="number" id="p-to-${i}" data-k="to" min="1" max="${S.rounds}" value="${p.to}" aria-label="종료 라운드"></td>
+    <td><button class="icon-btn" data-del="${i}" title="삭제" aria-label="삭제">✕</button></td></tr>`).join('')
+    ;
+  updateSummary();
+}
+function allTags() { const s = new Set(); S.players.forEach(p => p.tags.forEach(t => t && s.add(t))); return [...s]; }
+
+$('#ptbody').addEventListener('input', e => {
+  const tr = e.target.closest('tr'); if (!tr) return;
+  const p = S.players[+tr.dataset.i], k = e.target.dataset.k;
+  if (k === 'tags') p.tags = e.target.value ? [e.target.value] : [];
+  else if (k === 'from' || k === 'to') p[k] = +e.target.value || (k === 'from' ? 1 : S.rounds);
+  else p[k] = e.target.value;
+  save(); updateSummary();
+  if (k === 'name') renderPairRules();
+});
+$('#ptbody').addEventListener('click', e => {
+  const b = e.target.closest('[data-del]'); if (!b) return;
+  S.players.splice(+b.dataset.del, 1); save(); renderPlayers(); renderPairRules();
+});
+$('#btn-addp').onclick = () => { S.players.push({ name: '', gender: 'M', tags: [], from: 1, to: S.rounds }); save(); renderPlayers(); const i = S.players.length - 1; $('#p-name-' + i)?.focus(); };
+$('#btn-sample').onclick = () => { const d = defaults(); S = Object.assign(S, { players: d.players, tagRules: d.tagRules, pairRules: d.pairRules, rules: d.rules, courts: d.courts, rounds: d.rounds, title: d.title }); save(); renderAll(); toast('예시 명단과 조건을 불러왔습니다'); };
+$('#btn-bulk').onclick = () => { $('#bulk').hidden = false; $('#bulk-text').value = S.players.map(p => [p.name, p.gender === 'F' ? '여' : '남', p.tags.join('/'), p.from, p.to].join(', ')).join('\n'); $('#bulk-text').focus(); };
+$('#bulk-cancel').onclick = () => { $('#bulk').hidden = true; };
+function parseBulk() {
+  const out = [], errs = [];
+  $('#bulk-text').value.split(/\n/).forEach((line, n) => {
+    if (!line.trim()) return;
+    const c = line.split(/\t|,/).map(s => s.trim());
+    const g = (c[1] || '남').toLowerCase();
+    const gender = /^(여|여자|f|w|female)$/.test(g) ? 'F' : /^(남|남자|m|male)$/.test(g) ? 'M' : null;
+    if (!c[0]) { errs.push(`${n + 1}번째 줄: 이름이 없습니다`); return; }
+    if (!gender) { errs.push(`${n + 1}번째 줄: 성별은 남 또는 여로 적어주세요`); return; }
+    const seed = parseSeed(c[2]);
+    if (seed === null) { errs.push(`${n + 1}번째 줄: 시드는 탑시드, AD시드 중 하나이거나 비워두세요`); return; }
+    out.push({ name: c[0], gender, tags: seed ? [seed] : [], from: +c[3] || 1, to: +c[4] || S.rounds });
+  });
+  $('#bulk-err').textContent = errs.join(' · ');
+  return errs.length ? null : out;
+}
+$('#bulk-replace').onclick = () => { const r = parseBulk(); if (!r) return; S.players = r; save(); renderPlayers(); renderPairRules(); $('#bulk').hidden = true; toast(`${r.length}명으로 교체했습니다`); };
+$('#bulk-append').onclick = () => { const r = parseBulk(); if (!r) return; S.players.push(...r); save(); renderPlayers(); renderPairRules(); $('#bulk').hidden = true; toast(`${r.length}명을 추가했습니다`); };
+
+function hardSelect(id, hard) {
+  return `<select id="${id}" data-k="hard" aria-label="필수 여부"><option value="1"${hard ? ' selected' : ''}>필수</option><option value="0"${!hard ? ' selected' : ''}>선호</option></select>`;
+}
+function renderRules() {
+  $('#rules').innerHTML = RULE_DEFS.map(d => {
+    const r = S.rules[d.id];
+    return `<div class="rule${r.on ? '' : ' off'}" data-id="${d.id}">
+      <input type="checkbox" id="r-on-${d.id}" data-k="on"${r.on ? ' checked' : ''} aria-label="${esc(d.label)} 사용">
+      <label class="name" for="r-on-${d.id}">${esc(d.label)}${d.unit ? ` <input type="number" id="r-n-${d.id}" data-k="n" min="0" max="20" value="${r.n}" aria-label="기준값"> ${d.unit}` : ''}</label>
+      ${d.softOnly ? '<span class="pill neutral">선호</span>' : hardSelect('r-h-' + d.id, r.hard)}
+      ${d.desc ? `<div class="desc">${esc(d.desc)}</div>` : ''}</div>`;
+  }).join('');
+}
+$('#rules').addEventListener('change', e => {
+  const box = e.target.closest('.rule'); if (!box) return;
+  const r = S.rules[box.dataset.id], k = e.target.dataset.k;
+  if (k === 'on') { r.on = e.target.checked; box.classList.toggle('off', !r.on); }
+  else if (k === 'n') r.n = Math.max(0, +e.target.value || 0);
+  else if (k === 'hard') r.hard = e.target.value === '1';
+  save(); markStale();
+});
+
+function renderTagRules() {
+  $('#tagrules').innerHTML = S.tagRules.map((t, i) => `<div class="mini-rule" data-i="${i}">
+    <select id="t-tag-${i}" data-k="tag" aria-label="시드">${SEEDS.map(x => `<option${t.tag === x ? ' selected' : ''}>${x}</option>`).join('')}</select>
+    <select id="t-type-${i}" data-k="type" aria-label="조건">${Object.entries(TAG_TYPES).map(([k, v]) => `<option value="${k}"${t.type === k ? ' selected' : ''}>${v}</option>`).join('')}</select>
+    ${hardSelect('t-h-' + i, t.hard !== false)}
+    <button class="icon-btn" data-del="${i}" aria-label="삭제">✕</button></div>`).join('') || '<div class="summary-line">없음</div>';
+}
+$('#tagrules').addEventListener('input', e => {
+  const box = e.target.closest('.mini-rule'); if (!box) return;
+  const t = S.tagRules[+box.dataset.i], k = e.target.dataset.k;
+  if (k === 'hard') t.hard = e.target.value === '1'; else t[k] = e.target.value.trim();
+  save(); markStale();
+});
+$('#tagrules').addEventListener('click', e => { const b = e.target.closest('[data-del]'); if (!b) return; S.tagRules.splice(+b.dataset.del, 1); save(); renderTagRules(); markStale(); });
+$('#btn-addtag').onclick = () => { S.tagRules.push({ tag: SEEDS[0], type: 'noSameTeam', hard: true }); save(); renderTagRules(); };
+
+function renderPairRules() {
+  const names = S.players.map(p => p.name.trim()).filter(Boolean);
+  const opts = v => `<option value="">선택</option>` + names.map(n => `<option${n === v ? ' selected' : ''}>${esc(n)}</option>`).join('');
+  $('#pairrules').innerHTML = S.pairRules.map((p, i) => `<div class="mini-rule" data-i="${i}">
+    <select id="pr-a-${i}" data-k="a" aria-label="첫 번째 사람">${opts(p.a)}</select>
+    <select id="pr-b-${i}" data-k="b" aria-label="두 번째 사람">${opts(p.b)}</select>
+    <select id="pr-t-${i}" data-k="type" aria-label="조건">${Object.entries(PAIR_TYPES).map(([k, v]) => `<option value="${k}"${p.type === k ? ' selected' : ''}>${v}</option>`).join('')}</select>
+    ${hardSelect('pr-h-' + i, p.hard !== false)}
+    <button class="icon-btn" data-del="${i}" aria-label="삭제">✕</button></div>`).join('') || '<div class="summary-line">없음. 예: 부부끼리 상대 금지</div>';
+}
+$('#pairrules').addEventListener('change', e => {
+  const box = e.target.closest('.mini-rule'); if (!box) return;
+  const p = S.pairRules[+box.dataset.i], k = e.target.dataset.k;
+  if (k === 'hard') p.hard = e.target.value === '1'; else p[k] = e.target.value;
+  save(); markStale();
+});
+$('#pairrules').addEventListener('click', e => { const b = e.target.closest('[data-del]'); if (!b) return; S.pairRules.splice(+b.dataset.del, 1); save(); renderPairRules(); markStale(); });
+$('#btn-addpair').onclick = () => { S.pairRules.push({ a: '', b: '', type: 'noOpponent', hard: true }); save(); renderPairRules(); };
+
+[['#in-title', 'title'], ['#in-courts', 'courts'], ['#in-rounds', 'rounds'], ['#in-start', 'startTime'], ['#in-min', 'matchMinutes']].forEach(([sel, k]) => {
+  $(sel).addEventListener('input', e => {
+    const v = e.target.value;
+    const old = S.rounds;
+    if (k === 'courts' || k === 'rounds' || k === 'matchMinutes') { const n = parseInt(v, 10); if (!(n > 0)) return; S[k] = n; }
+    else S[k] = v;
+    // 마지막 라운드까지 뛰던 사람은 라운드 수가 바뀌어도 마지막까지
+    if (k === 'rounds') S.players.forEach(p => { if (p.to === old || p.to > S.rounds) p.to = S.rounds; if (p.from > S.rounds) p.from = S.rounds; });
+    save(); updateSummary();
+    if (k === 'rounds') renderPlayers();
+    if (RES) renderResult();
+  });
+});
+
+// ---------- 생성 ----------
+function validate(inp) {
+  const errs = [];
+  const names = inp.players.map(p => p.name);
+  const dup = names.filter((n, i) => names.indexOf(n) !== i);
+  if (dup.length) errs.push(`이름이 겹칩니다: ${[...new Set(dup)].join(', ')}`);
+  if (inp.players.length < 4) errs.push('참가자가 4명 이상이어야 합니다');
+  inp.players.forEach(p => { if (p.from > p.to) errs.push(`${p.name}: 시작 라운드가 종료 라운드보다 늦습니다`); });
+  const tags = new Set(inp.players.flatMap(p => p.tags));
+  inp.tagRules.forEach(t => { if (!tags.has(t.tag)) errs.push(`${t.tag} 참가자가 없습니다. 시드 조건을 지우거나 참가자에게 ${t.tag}를 지정하세요`); });
+  if (inp.tagRules.length > 30) errs.push('태그 조건은 30개까지 가능합니다');
+  return errs;
+}
+function getWorker() {
+  if (!workerURL) workerURL = URL.createObjectURL(new Blob([$('#engine-src').textContent], { type: 'text/javascript' }));
+  return new Worker(workerURL);
+}
+function runGenerate(seed) {
+  const inp = engineInput();
+  const errs = validate(inp);
+  if (errs.length) { $('#gen-status').innerHTML = `<span class="err">${errs.map(esc).join('<br>')}</span>`; return; }
+  seed = (parseInt(seed, 10) >>> 0) || 1;
+  $('#in-seed').value = seed;
+  if (worker) worker.terminate();
+  worker = getWorker();
+  $('#prog').hidden = false; $('#prog i').style.width = '0%';
+  $('#btn-gen').disabled = $('#btn-shuffle').disabled = true; $('#btn-cancel').hidden = false;
+  $('#gen-status').textContent = `시드 #${seed}로 탐색 중…`;
+  const t0 = performance.now();
+  worker.onmessage = e => {
+    const m = e.data;
+    if (m.type === 'progress') {
+      $('#prog i').style.width = (m.f * 100).toFixed(1) + '%';
+      $('#gen-status').textContent = `시드 #${seed}로 탐색 중… (시도 ${m.best + 1})`;
+    } else if (m.type === 'done') {
+      finishGen();
+      history.replaceState(null, '', location.pathname + location.search);
+      setResult({ input: inp, rounds: m.result.rounds, seed, hard: m.result.hard });
+      const sec = ((performance.now() - t0) / 1000).toFixed(1);
+      $('#gen-status').textContent = m.result.hard === 0 ? `완료 (${sec}초). 필수 조건을 모두 만족합니다.` : `완료 (${sec}초). 필수 조건 위반이 남았습니다. 아래 검증 탭을 확인하세요.`;
+      tab = m.result.hard === 0 ? tab : 'verify';
+      renderResult();
+    }
+  };
+  worker.onerror = e => { finishGen(); $('#gen-status').innerHTML = `<span class="err">생성 중 오류: ${esc(e.message)}</span>`; };
+  worker.postMessage({ input: inp, seed });
+}
+function finishGen() {
+  $('#prog').hidden = true; $('#btn-gen').disabled = $('#btn-shuffle').disabled = false; $('#btn-cancel').hidden = true;
+}
+$('#btn-gen').onclick = () => runGenerate($('#in-seed').value);
+$('#btn-shuffle').onclick = () => runGenerate(1 + Math.floor(Math.random() * 999999));
+$('#btn-cancel').onclick = () => { if (worker) worker.terminate(); worker = null; finishGen(); $('#gen-status').textContent = '중단했습니다.'; };
+$('#in-seed').addEventListener('keydown', e => { if (e.key === 'Enter') runGenerate(e.target.value); });
+
+function setResult(r) {
+  r.verify = verifySchedule(r.input, r.rounds);
+  r.hard = r.verify.checks.filter(c => c.hard && !c.pass).reduce((s, c) => s + c.fails.length, 0);
+  RES = r;
+  const names = r.input.players.map(p => p.name);
+  if (me && !names.includes(me)) me = '';
+}
+function markStale() {
+  const el = $('#stale'); if (!el || !RES) return;
+  el.hidden = engineKey(engineInput()) === engineKey(RES.input);
+}
+
+// ---------- 결과 렌더 ----------
+const evOf = (P, m) => {
+  const f = m.map(i => P[i].gender === 'F' ? 1 : 0);
+  const a = f[0] + f[1], b = f[2] + f[3];
+  if (a !== b) return ['BAD', '잡복'];
+  return a === 0 ? ['MD', '남자복식'] : a === 2 ? ['WD', '여자복식'] : ['XD', '혼합복식'];
+};
+function timeOf(inp, r) {
+  const [h, mm] = (inp.startTime || '12:00').split(':').map(Number);
+  const s = h * 60 + mm + r * inp.matchMinutes, e = s + inp.matchMinutes;
+  const f = t => `${String(Math.floor(t / 60) % 24).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+  return `${f(s)} ~ ${f(e)}`;
+}
+// 해당 라운드에 출전 가능 범위 밖인 사람 (늦게 오거나 일찍 가는 사람)
+function absentOf(inp, r) { return inp.players.map((p, i) => i).filter(i => r + 1 < inp.players[i].from || r + 1 > inp.players[i].to); }
+function seedMark(p) {
+  const t = p.tags || [];
+  return t.length ? `<span class="seed-mark" title="${esc(t.join(', '))}">${esc(t.map(x => x.replace(/시드$/, '')).join('·'))}</span>` : '';
+}
+
+function renderResult() {
+  const box = $('#result');
+  if (!RES) {
+    box.innerHTML = `<div class="empty"><b>아직 대진이 없습니다.</b><br>왼쪽에서 명단과 조건을 확인한 뒤 <b>대진 생성</b>을 누르세요.</div>`;
+    return;
+  }
+  const inp = RES.input, P = inp.players, v = RES.verify;
+  const hardFails = v.checks.filter(c => c.hard && !c.pass);
+  const softFails = v.checks.filter(c => !c.hard && !c.pass);
+  const meIdx = P.findIndex(p => p.name === me);
+  const myGames = [];
+  if (meIdx >= 0) RES.rounds.forEach((rd, r) => rd.matches.forEach((m, c) => {
+    const k = m.indexOf(meIdx); if (k < 0) return;
+    const mine = k < 2 ? [m[0], m[1]] : [m[2], m[3]], opp = k < 2 ? [m[2], m[3]] : [m[0], m[1]];
+    myGames.push({ r, c, partner: mine.find(x => x !== meIdx), opp });
+  }));
+
+  box.innerHTML = `
+    <div class="result-head">
+      <div class="scoreboard">
+        <span class="seedtag">SEED #${RES.seed}</span>
+        ${hardFails.length ? `<span class="pill bad">필수 위반 ${RES.hard}건</span>` : `<span class="pill ok">필수 조건 모두 통과</span>`}
+        ${softFails.length ? `<span class="pill warn">선호 미달 ${softFails.length}개 항목</span>` : ''}
+        <span class="pill neutral">같은 상대 2회 ${v.stats.opp2}쌍</span>
+      </div>
+      <div class="actions">
+        ${sharedView ? '' : '<button class="btn" id="btn-share">공유 링크 복사</button>'}
+        <button class="btn primary" id="btn-xlsx">엑셀 내보내기</button>
+      </div>
+    </div>
+    <div class="banner warn" id="stale" hidden>대진 생성 뒤 명단이나 조건이 바뀌었습니다. 아래 결과는 이전 설정 기준입니다. 다시 생성하세요.</div>
+    <div class="copybox" id="copybox" hidden><input type="text" id="share-url" readonly aria-label="공유 링크"><button class="btn sm" id="btn-copy2">복사</button></div>
+    <div class="mebar">
+      <label for="sel-me" class="eyebrow">내 이름</label>
+      <select id="sel-me"><option value="">선택 안 함</option>${P.map(p => `<option${p.name === me ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select>
+      <span class="legend"><span><i class="sw me"></i>내 팀</span><span><i class="sw opp"></i>상대 팀</span></span>
+      ${meIdx >= 0 ? `<div class="mycard">${myGames.map(g => `<span class="g"><b>${g.r + 1}R</b> ${timeOf(inp, g.r).split(' ~ ')[0]} · ${g.c + 1}코트 · 페어 ${esc(P[g.partner].name)} · vs ${esc(P[g.opp[0]].name)}·${esc(P[g.opp[1]].name)}</span>`).join('')}</div>` : ''}
+    </div>
+    <div class="tabs" role="tablist">
+      ${[['court', '코트별 일정'], ['person', '개인별 일정'], ['pairs', '페어·상대 현황'], ['verify', '검증 결과']].map(([k, l]) =>
+        `<button role="tab" data-tab="${k}" aria-selected="${tab === k}">${l}${k === 'verify' && hardFails.length ? ' ⚠' : ''}</button>`).join('')}
+    </div>
+    <div class="tabpane" id="pane"></div>`;
+
+  $('#sel-me').onchange = e => { me = e.target.value; lsSet(LS_ME, me); renderResult(); };
+  box.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { tab = b.dataset.tab; renderResult(); });
+  if ($('#btn-share')) $('#btn-share').onclick = share;
+  $('#btn-xlsx').onclick = exportXlsx;
+  $('#btn-copy2').onclick = () => copyText($('#share-url').value);
+  const pane = $('#pane');
+  if (tab === 'court') pane.innerHTML = courtView(inp, meIdx);
+  else if (tab === 'person') pane.innerHTML = personView(inp, meIdx);
+  else if (tab === 'pairs') pane.innerHTML = pairsView(inp, meIdx);
+  else pane.innerHTML = verifyView(inp);
+  markStale();
+}
+
+function teamCell(P, team, cls) {
+  return `<td class="${cls}">${team.map(i => esc(P[i].name) + seedMark(P[i])).join(', ')}</td>`;
+}
+function courtView(inp, meIdx) {
+  const P = inp.players;
+  let h = `<div class="scroll"><table class="sched"><thead><tr><th>라운드</th><th>시간</th><th>코트</th><th>종목</th><th>팀 A</th><th></th><th>팀 B</th><th>휴식</th></tr></thead><tbody>`;
+  RES.rounds.forEach((rd, r) => {
+    rd.matches.forEach((m, c) => {
+      const [ec, el] = evOf(P, m);
+      const inA = m.slice(0, 2).includes(meIdx), inB = m.slice(2).includes(meIdx);
+      h += `<tr class="${c === 0 ? 'rstart' : ''}">
+        ${c === 0 ? `<td class="rd" rowspan="${rd.matches.length}">${r + 1}R</td><td class="time" rowspan="${rd.matches.length}">${timeOf(inp, r)}</td>` : ''}
+        <td>${c + 1}코트</td><td><span class="ev ${ec}">${el}</span></td>
+        ${teamCell(P, m.slice(0, 2), inA ? 'me' : inB ? 'opp' : '')}<td class="vs">vs</td>${teamCell(P, m.slice(2), inB ? 'me' : inA ? 'opp' : '')}
+        ${c === 0 ? `<td class="rest" rowspan="${rd.matches.length}">${rd.rest.length ? rd.rest.map(i => i === meIdx ? `<span class="me">${esc(P[i].name)}</span>` : esc(P[i].name)).join(', ') : '-'}${absentOf(inp, r).length ? `<br><span class="muted">불참: ${absentOf(inp, r).map(i => esc(P[i].name)).join(', ')}</span>` : ''}</td>` : ''}
+      </tr>`;
+    });
+  });
+  return h + `</tbody></table></div>`;
+}
+function personView(inp, meIdx) {
+  const P = inp.players, R = RES.rounds.length;
+  const cells = P.map(() => Array(R).fill(null));
+  RES.rounds.forEach((rd, r) => rd.matches.forEach((m, c) => m.forEach((p, k) => {
+    const mine = k < 2 ? [m[0], m[1]] : [m[2], m[3]], opp = k < 2 ? [m[2], m[3]] : [m[0], m[1]];
+    cells[p][r] = { c, partner: mine.find(x => x !== p), opp };
+  })));
+  let h = `<div class="scroll"><table class="pgrid"><thead><tr><th>이름</th>${RES.rounds.map((_, r) => `<th>${r + 1}R <span class="muted">${timeOf(inp, r).split(' ~ ')[0]}</span></th>`).join('')}<th>경기</th></tr></thead><tbody>`;
+  P.forEach((p, i) => {
+    let n = 0;
+    h += `<tr class="${i === meIdx ? 'meRow' : ''}"><td><b>${esc(p.name)}</b>${seedMark(p)}</td>` + cells[i].map((x, r) => {
+      if (x) { n++; return `<td><span class="c">${x.c + 1}코트</span>${esc(P[x.partner].name)} <span class="o">vs ${esc(P[x.opp[0]].name)}·${esc(P[x.opp[1]].name)}</span></td>`; }
+      return r + 1 < p.from || r + 1 > p.to ? `<td class="nav">불참</td>` : `<td class="restc">휴식</td>`;
+    }).join('') + `<td>${n}</td></tr>`;
+  });
+  return h + `</tbody></table></div>`;
+}
+function pairsView(inp, meIdx) {
+  const P = inp.players, st = RES.verify.stats;
+  const partners = P.map(() => []), opps = P.map(() => new Map());
+  RES.rounds.forEach(rd => rd.matches.forEach(m => m.forEach((p, k) => {
+    const mine = k < 2 ? [m[0], m[1]] : [m[2], m[3]], opp = k < 2 ? [m[2], m[3]] : [m[0], m[1]];
+    partners[p].push(mine.find(x => x !== p));
+    opp.forEach(o => opps[p].set(o, (opps[p].get(o) || 0) + 1));
+  })));
+  let h = `<div class="scroll"><table class="pgrid"><thead><tr><th>이름</th><th>파트너</th><th>상대 (횟수)</th><th>2회 이상 상대</th></tr></thead><tbody>`;
+  P.forEach((p, i) => {
+    const os = [...opps[i]].sort((a, b) => b[1] - a[1]);
+    const rep = os.filter(([, c]) => c > 1);
+    h += `<tr class="${i === meIdx ? 'meRow' : ''}"><td><b>${esc(p.name)}</b>${seedMark(p)}</td>
+      <td>${partners[i].map(x => esc(P[x].name)).join(', ')}</td>
+      <td>${os.map(([o, c]) => c > 1 ? `<b>${esc(P[o].name)}(${c})</b>` : esc(P[o].name)).join(', ')}</td>
+      <td>${rep.length ? rep.length + '명' : '-'}</td></tr>`;
+  });
+  return h + `</tbody></table></div>`;
+}
+function verifyView(inp) {
+  const v = RES.verify, P = inp.players, st = v.stats;
+  const g = st.games, mn = Math.min(...g), mx = Math.max(...g);
+  const women = P.map((p, i) => i).filter(i => P[i].gender === 'F');
+  let h = `<div class="stats">
+    <div class="stat"><div class="k">1인 경기 수</div><div class="v">${mn === mx ? mn : mn + '~' + mx}</div></div>
+    <div class="stat"><div class="k">같은 상대 2회 쌍</div><div class="v">${st.opp2}</div></div>
+    <div class="stat"><div class="k">같은 상대 3회 이상</div><div class="v">${st.opp3}</div></div>
+    <div class="stat"><div class="k">반복된 파트너</div><div class="v">${st.partnerRepeat}</div></div>
+    ${women.length ? `<div class="stat"><div class="k">여자 여복 / 혼복</div><div class="v" style="font-size:14px">${women.map(i => `${esc(P[i].name)} ${st.wd[i]}/${st.xd[i]}`).join('<br>')}</div></div>` : ''}
+  </div><div class="checks">`;
+  v.checks.forEach(c => {
+    h += `<div class="check"><span class="pill ${c.pass ? 'ok' : c.hard ? 'bad' : 'warn'}">${c.pass ? '통과' : c.hard ? '위반' : '미달'}</span>
+      <div><b>${esc(c.label)}</b> <span class="muted" style="font-size:12px">${c.hard ? '필수' : '선호'}</span></div>
+      <div class="d">${c.pass ? esc(c.detail) : `<ul>${c.fails.slice(0, 12).map(f => `<li>${esc(f)}</li>`).join('')}${c.fails.length > 12 ? `<li>외 ${c.fails.length - 12}건</li>` : ''}</ul>`}</div></div>`;
+  });
+  h += `</div><p class="summary-line" style="margin-top:12px">이 표는 화면에 표시된 대진을 그대로 다시 세어 만든 결과입니다. 생성 엔진의 점수와는 따로 계산합니다.</p>`;
+  return h;
+}
+
+// ---------- 공유 ----------
+function packResult() {
+  const i = RES.input;
+  return {
+    v: 1, seed: RES.seed,
+    s: { t: i.title, c: i.courts, r: i.rounds, st: i.startTime, mm: i.matchMinutes, ru: i.rules, tr: i.tagRules, pr: i.pairRules,
+      p: i.players.map(p => [p.name, p.gender, p.tags.join('|'), p.from, p.to]) },
+    m: RES.rounds.map(rd => rd.matches.flat()),
+  };
+}
+function unpack(o) {
+  const s = o.s;
+  const input = { title: s.t, courts: s.c, rounds: s.r, startTime: s.st, matchMinutes: s.mm, rules: s.ru, tagRules: s.tr || [], pairRules: s.pr || [],
+    players: s.p.map(([name, gender, tags, from, to]) => ({ name, gender, tags: tags ? tags.split('|') : [], from, to })) };
+  const N = input.players.length;
+  const rounds = o.m.map(flat => {
+    const matches = []; for (let k = 0; k + 3 < flat.length; k += 4) matches.push(flat.slice(k, k + 4));
+    const playing = new Set(flat);
+    const rest = []; for (let p = 0; p < N; p++) if (!playing.has(p)) rest.push(p);
+    return { matches, rest };
+  });
+  // 불참 라운드인 사람은 휴식 목록에서 제외
+  rounds.forEach((rd, r) => rd.rest = rd.rest.filter(p => r + 1 >= input.players[p].from && r + 1 <= input.players[p].to));
+  return { input, rounds, seed: o.seed };
+}
+function shareURL() {
+  const data = LZString.compressToEncodedURIComponent(JSON.stringify(packResult()));
+  return location.href.split('#')[0] + '#d=' + data;
+}
+function copyText(text) {
+  const done = () => toast('링크를 복사했습니다');
+  const fallback = () => { const box = $('#copybox'); box.hidden = false; const inpEl = $('#share-url'); inpEl.value = text; inpEl.select(); toast('자동 복사가 막혀 있습니다. 선택된 링크를 직접 복사하세요'); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback); else fallback();
+}
+function share() {
+  if (typeof LZString === 'undefined') { toast('압축 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요'); return; }
+  const url = shareURL();
+  $('#copybox').hidden = false; $('#share-url').value = url;
+  copyText(url);
+}
+function loadFromHash() {
+  const m = location.hash.match(/^#d=(.+)$/);
+  if (!m || typeof LZString === 'undefined') return false;
+  try {
+    const o = JSON.parse(LZString.decompressFromEncodedURIComponent(m[1]));
+    const r = unpack(o);
+    S = normalize({ title: r.input.title, courts: r.input.courts, rounds: r.input.rounds, startTime: r.input.startTime, matchMinutes: r.input.matchMinutes,
+      players: r.input.players, rules: r.input.rules, tagRules: r.input.tagRules, pairRules: r.input.pairRules });
+    sharedView = true;
+    setResult(r);
+    return true;
+  } catch (e) { console.error(e); toast('공유 링크를 읽지 못했습니다. 링크가 잘렸는지 확인하세요'); return false; }
+}
+
+// ---------- 엑셀 ----------
+async function exportXlsx() {
+  if (typeof ExcelJS === 'undefined') { toast('엑셀 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인하세요'); return; }
+  const inp = RES.input, P = inp.players, R = RES.rounds, v = RES.verify;
+  const wb = new ExcelJS.Workbook();
+  const HEAD = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1D5A85' } };
+  const thin = { style: 'thin', color: { argb: 'FFD3DCD7' } };
+  const border = { top: thin, left: thin, bottom: thin, right: thin };
+  const font = { name: '맑은 고딕', size: 10 };
+  function sheet(name, title, sub, headers, widths) {
+    const ws = wb.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 4 }] });
+    ws.getCell('A1').value = title; ws.getCell('A1').font = { name: '맑은 고딕', size: 14, bold: true };
+    ws.getCell('A2').value = sub; ws.getCell('A2').font = { name: '맑은 고딕', size: 9, color: { argb: 'FF5A6A63' } };
+    const hr = ws.getRow(4); hr.values = headers;
+    hr.eachCell(c => { c.fill = HEAD; c.font = { ...font, bold: true, color: { argb: 'FFFFFFFF' } }; c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true }; c.border = border; });
+    hr.height = 22;
+    widths.forEach((w, i) => ws.getColumn(i + 1).width = w);
+    return ws;
+  }
+  function styleRows(ws, from) {
+    for (let r = from; r <= ws.rowCount; r++) ws.getRow(r).eachCell({ includeEmpty: false }, c => { c.border = border; c.font = Object.assign({}, font, c.font || {}); c.alignment = Object.assign({ vertical: 'middle' }, c.alignment || {}); });
+  }
+  const title = inp.title || '테니스 대회';
+  const sub = `시드 #${RES.seed} · ${inp.courts}코트 × ${inp.rounds}라운드 · 경기당 ${inp.matchMinutes}분`;
+
+  // 1. 참가자
+  let ws = sheet('참가자', `${title} 참가자`, sub, ['NO', '이름', '성별', '시드', '출전 가능 라운드', '경기 수'], [6, 16, 8, 18, 16, 10]);
+  P.forEach((p, i) => ws.addRow([i + 1, p.name, p.gender === 'F' ? '여자' : '남자', p.tags.join(', '), `${p.from}R ~ ${p.to}R`, v.stats.games[i]]));
+  styleRows(ws, 5);
+
+  // 2. 코트별 일정
+  ws = sheet('코트별일정', `${title} 코트별 일정`, sub, ['라운드', '시간', '코트', '종목', '팀 A', 'vs', '팀 B', '휴식'], [8, 15, 8, 10, 22, 5, 22, 60]);
+  R.forEach((rd, r) => {
+    const start = ws.rowCount + 1;
+    rd.matches.forEach((m, c) => ws.addRow([`${r + 1}R`, timeOf(inp, r), `${c + 1}코트`, evOf(P, m)[1], `${P[m[0]].name}, ${P[m[1]].name}`, 'vs', `${P[m[2]].name}, ${P[m[3]].name}`, c === 0 ? rd.rest.map(i => P[i].name).join(', ') + (absentOf(inp, r).length ? ` / 불참: ${absentOf(inp, r).map(i => P[i].name).join(', ')}` : '') : '']));
+    if (rd.matches.length > 1) ws.mergeCells(start, 8, start + rd.matches.length - 1, 8);
+    ws.getCell(start, 8).alignment = { wrapText: true, vertical: 'middle' };
+  });
+  styleRows(ws, 5);
+
+  // 3. 경기 결과 입력
+  const n = R.reduce((s, rd) => s + rd.matches.length, 0), last = 4 + n;
+  ws = sheet('경기결과입력', '경기 스코어 입력', '팀 A 점수와 팀 B 점수(게임 수)를 입력하면 승패와 순위가 자동 계산됩니다.',
+    ['매치', '라운드', '코트', '종목', 'A 선수1', 'A 선수2', 'A 점수', ':', 'B 점수', 'B 선수1', 'B 선수2', '결과', 'A 득실', 'B 득실'], [7, 8, 8, 10, 13, 13, 8, 3, 8, 13, 13, 11, 8, 8]);
+  let k = 0;
+  R.forEach((rd, r) => rd.matches.forEach((m, c) => {
+    k++; const row = 4 + k;
+    ws.addRow([`M${String(k).padStart(2, '0')}`, `${r + 1}R`, `${c + 1}코트`, evOf(P, m)[1], P[m[0]].name, P[m[1]].name, null, ':', null, P[m[2]].name, P[m[3]].name,
+      { formula: `IF(OR(G${row}="",I${row}=""),"진행예정",IF(G${row}>I${row},"팀 A 승",IF(G${row}<I${row},"팀 B 승","무승부")))`, result: '진행예정' },
+      { formula: `IF(OR(G${row}="",I${row}=""),"",G${row}-I${row})`, result: '' },
+      { formula: `IF(OR(G${row}="",I${row}=""),"",I${row}-G${row})`, result: '' }]);
+    ['G', 'I'].forEach(col => ws.getCell(`${col}${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFBF7D0' } });
+  }));
+  styleRows(ws, 5);
+
+  // 4. 순위표
+  ws = sheet('순위표', `${title} 순위표`, '순위 기준: ① 승수 ② 득실차 ③ 총 득점. 경기결과입력 시트에 점수를 넣으면 자동 갱신됩니다. (정렬은 직접)',
+    ['순위', '이름', '성별', '시드', '경기', '승', '무', '패', '득점', '실점', '득실차', '승률', '정렬값'], [6, 14, 7, 12, 6, 6, 6, 6, 7, 7, 8, 8, 12]);
+  const g = col => `'경기결과입력'!$${col}$5:$${col}$${last}`;
+  const cnt = (row, res) => ['E', 'F'].map(c => `COUNTIFS(${g(c)},B${row},${g('L')},"${res[0]}")`).concat(['J', 'K'].map(c => `COUNTIFS(${g(c)},B${row},${g('L')},"${res[1]}")`)).join('+');
+  const sm = (row, a, b) => ['E', 'F'].map(c => `SUMIF(${g(c)},B${row},${g(a)})`).concat(['J', 'K'].map(c => `SUMIF(${g(c)},B${row},${g(b)})`)).join('+');
+  P.forEach((p, i) => {
+    const row = 5 + i;
+    ws.addRow([{ formula: `RANK(M${row},$M$5:$M$${4 + P.length})` }, p.name, p.gender === 'F' ? '여자' : '남자', p.tags.join(', '),
+      { formula: `COUNTIF('경기결과입력'!$E$5:$F$${last},B${row})+COUNTIF('경기결과입력'!$J$5:$K$${last},B${row})` },
+      { formula: cnt(row, ['팀 A 승', '팀 B 승']) }, { formula: cnt(row, ['무승부', '무승부']) }, { formula: cnt(row, ['팀 B 승', '팀 A 승']) },
+      { formula: sm(row, 'G', 'I') }, { formula: sm(row, 'I', 'G') }, { formula: `I${row}-J${row}` },
+      { formula: `IF(F${row}+G${row}+H${row}=0,0,F${row}/(F${row}+G${row}+H${row}))` },
+      { formula: `F${row}*100000+(K${row}+500)*100+I${row}` }]);
+    ws.getCell(`L${row}`).numFmt = '0%';
+  });
+  ws.getColumn(13).hidden = true;
+  styleRows(ws, 5);
+
+  // 5. 개인별 일정
+  ws = sheet('개인별일정', `${title} 개인별 일정`, sub, ['이름', ...R.map((_, r) => `${r + 1}R (${timeOf(inp, r).split(' ~ ')[0]})`), '경기 수'], [14, ...R.map(() => 30), 8]);
+  P.forEach((p, i) => {
+    const row = [p.name];
+    R.forEach((rd, r) => {
+      let txt = (r + 1 < p.from || r + 1 > p.to) ? '[불참]' : '[휴식]';
+      rd.matches.forEach((m, c) => { const kk = m.indexOf(i); if (kk < 0) return;
+        const mine = kk < 2 ? [m[0], m[1]] : [m[2], m[3]], opp = kk < 2 ? [m[2], m[3]] : [m[0], m[1]];
+        txt = `[${c + 1}코트] 페어:${P[mine.find(x => x !== i)].name} (vs ${P[opp[0]].name}&${P[opp[1]].name})`; });
+      row.push(txt);
+    });
+    row.push(`${v.stats.games[i]}경기`);
+    const added = ws.addRow(row);
+    added.eachCell((c, col) => { if (c.value === '[휴식]' || c.value === '[불참]') c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFBF3D6' } }; });
+  });
+  styleRows(ws, 5);
+
+  // 6. 페어·상대 현황
+  ws = sheet('페어상대현황', '페어 및 상대 현황', sub, ['이름', '파트너', '상대 (횟수)', '2회 이상 상대'], [14, 36, 70, 14]);
+  P.forEach((p, i) => {
+    const partners = [], opps = new Map();
+    R.forEach(rd => rd.matches.forEach(m => { const kk = m.indexOf(i); if (kk < 0) return;
+      const mine = kk < 2 ? [m[0], m[1]] : [m[2], m[3]], opp = kk < 2 ? [m[2], m[3]] : [m[0], m[1]];
+      partners.push(P[mine.find(x => x !== i)].name); opp.forEach(o => opps.set(o, (opps.get(o) || 0) + 1)); }));
+    const os = [...opps].sort((a, b) => b[1] - a[1]);
+    ws.addRow([p.name, partners.join(', '), os.map(([o, c]) => `${P[o].name}(${c})`).join(', '), os.filter(([, c]) => c > 1).length + '명']);
+  });
+  styleRows(ws, 5);
+
+  // 7. 검증 결과
+  ws = sheet('검증결과', '대진 조건 검증 결과', `${sub} · 내보낸 시점의 대진을 다시 세어 만든 표입니다. 대진을 손으로 바꾸면 이 표는 갱신되지 않습니다.`, ['조건', '구분', '결과', '상세'], [36, 8, 8, 80]);
+  v.checks.forEach(c => {
+    const row = ws.addRow([c.label, c.hard ? '필수' : '선호', c.pass ? '통과' : c.hard ? '위반' : '미달', c.pass ? c.detail : c.fails.join(' / ')]);
+    row.getCell(3).font = { ...font, bold: true, color: { argb: c.pass ? 'FF23774A' : 'FFB8352A' } };
+    row.getCell(4).alignment = { wrapText: true, vertical: 'middle' };
+  });
+  ws.addRow([]); ws.addRow(['같은 상대 2회 쌍', '', v.stats.opp2]); ws.addRow(['같은 상대 3회 이상 쌍', '', v.stats.opp3]);
+  styleRows(ws, 5);
+
+  const buf = await wb.xlsx.writeBuffer();
+  const blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${(inp.title || '대진표').replace(/[\\/:*?"<>|]/g, '')}_시드${RES.seed}.xlsx`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  toast('엑셀 파일을 내려받았습니다');
+}
+
+// ---------- 시작 ----------
+// 공유 링크로 열면 설정·생성 영역을 숨기고 결과만 보여준다
+function applyMode() {
+  document.querySelector('.grid').classList.toggle('shared', sharedView);
+  document.querySelector('aside').hidden = sharedView;
+  $('#genpanel').hidden = sharedView;
+  $('#lead').textContent = sharedView ? '공유받은 대진표입니다. 내 이름을 고르면 내 경기와 상대 팀이 표시됩니다.' : '조건을 고르고 셔플로 대진을 만듭니다. 결과는 링크와 엑셀로 공유할 수 있습니다.';
+}
+function renderAll() { renderBasics(); renderPlayers(); renderRules(); renderTagRules(); renderPairRules(); renderResult(); }
+(function boot() {
+  let saved = null; try { saved = JSON.parse(lsGet(LS_KEY) || 'null'); } catch (e) { }
+  S = normalize(saved || defaults());
+  const fromLink = loadFromHash();
+  $('#in-seed').value = RES ? RES.seed : 20261015;
+  applyMode();
+  renderAll();
+  window.addEventListener('hashchange', () => { if (loadFromHash()) { applyMode(); renderAll(); } });
+})();
+
+</script>
+</body>
+</html>
