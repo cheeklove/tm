@@ -830,6 +830,23 @@ $('#btn-addp').onclick = () => { S.players.push({ name: '', gender: 'M', tags: [
 $('#btn-sample').onclick = () => { const d = defaults(); S = Object.assign(S, { players: d.players, tagRules: d.tagRules, pairRules: d.pairRules, rules: d.rules, courts: d.courts, rounds: d.rounds, title: d.title }); save(); renderAll(); toast('예시 명단과 조건을 불러왔습니다'); };
 $('#btn-bulk').onclick = () => { $('#bulk').hidden = false; $('#bulk-text').value = S.players.map(p => [p.name, p.gender === 'F' ? '여' : '남', p.tags.join('/'), p.from, p.to].join(', ')).join('\n'); $('#bulk-text').focus(); };
 $('#bulk-cancel').onclick = () => { $('#bulk').hidden = true; };
+// 숨김 기능: 붙여넣기 칸에 코드를 넣으면 암호화된 명단을 풀어서 채운다 (틀린 코드는 아무 반응 없음)
+const ROSTER_ENC = {"s":"Vug+GtW8oewpNFK39lxnlw==","i":"GSarMBKsHHJcwzip","d":"YDtCdMzBmKWFquDKEQ+3WmbLCoBsTCnLI9cfMb5L5AaAI/y+MsrjrsGIbFjAv9+5jkLM6ZGL2FIO/YNpSfefn4o7Zk5mYIIexBvyraxsJwfuX8YHf6ar8KnmJhf/wm86KDgA7ZGteUYJ96Rddv6zeKGB5TqBkQExTE0jxGHUII0z7OpO3RI7fYLdYaixa8L36opnKW1wKemK94UiLKhAun5RGutHTwVGZhPo7rFbkfQhpUsdkIvbdWFG39WVbt1GYIX/lljxPc+xk3Fr44+lFCpA6ibXtKio5N3WpclYPeEoo/b3sVHREcfiffnmQNEKPSuN25KJCVsrDC3ZMf3w1hC2PT9XGIOwxPvz8Y6JsGhCZcUrWKGtj7+Sp5QcVdjHwMR+nWA2rn8Pht3zPk/uhkL9NyQoJHSwU0Tet6WRmzenmtA+ycLlZg1w6DXAt1/xUbLtR6MTBiRur47B8gBScNyJjNAQPE0Vzm27i6NsSA5Iv6MpDLb2aHC9kA75V/PmPJ3vj06Z2VvsMvq8qJKTxTpdvur0LfY/L857x9fT43kPVxiSZUylt0bSl3r5jiYgngz9ftFv+fZiWDXWm8jmNLG8nQADN9HC4nI2A3gXVExnAJf+8dK/K4DiXWIUjo+g5m/NYczcJ2FNFeSq+PJeDPDf6xd7OAo/xXuRnRQc1ImrcC9Ou8VlnAK+oVp9EESKav3J1B+SHYPY5vwIH6IaKLndkQTortsBQXvIBE1L+2KQK3m+F8negs7mS4qyNfqf1C83aBV8aayyGxPSQH9F7dnxvySlsXt1kBCvjSVOt0fq+tHHX9HTI1WgQd5IlUzRaM3mEQiJkERBbbYHT0j3au+3BPcnMFeQCm3uaTvpIgRKatnVCl5nDwrbYHEaTKjCCA=="};
+async function unlockRoster(code) {
+  if (!ROSTER_ENC || !(window.crypto && crypto.subtle)) return null;
+  try {
+    const d = s => Uint8Array.from(atob(s), ch => ch.charCodeAt(0));
+    const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(code), 'PBKDF2', false, ['deriveKey']);
+    const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: d(ROSTER_ENC.s), iterations: 300000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+    return new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: d(ROSTER_ENC.i) }, key, d(ROSTER_ENC.d)));
+  } catch (e) { return null; }
+}
+$('#bulk-text').addEventListener('input', async e => {
+  const v = e.target.value.trim();
+  if (!/^\d{4}$/.test(v)) return;
+  const text = await unlockRoster(v);
+  if (text && $('#bulk-text').value.trim() === v) { $('#bulk-text').value = text; $('#bulk-err').textContent = ''; }
+});
 function parseBulk() {
   const out = [], errs = [];
   $('#bulk-text').value.split(/\n/).forEach((line, n) => {
